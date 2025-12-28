@@ -166,8 +166,9 @@ const handleRegister = async () => {
 </template>
 
 <style scoped>
+/* 继承自原 index.html 的样式 */
 .login-container {
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  background-color: #f8f9fa;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -175,66 +176,8 @@ const handleRegister = async () => {
 }
 .auth-card {
   width: 100%;
-  max-width: 440px;
-  padding: 40px;
-  border: none;
-  border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--card-shadow);
-}
-h3 {
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  color: #111827;
-}
-.form-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #4b5563;
-}
-.form-control, .form-select {
-  padding: 12px 16px;
-  border-radius: var(--radius-md);
-  border: 1px solid #e5e7eb;
-  transition: all 0.2s;
-}
-.form-control:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
-}
-.btn-primary {
-  padding: 12px;
-  font-weight: 600;
-  border-radius: var(--radius-md);
-  background: var(--primary-color);
-  border: none;
-  transition: transform 0.1s;
-}
-.btn-primary:active {
-  transform: scale(0.98);
-}
-a {
-  color: var(--primary-color);
-  text-decoration: none;
-  font-size: 0.9rem;
-  font-weight: 500;
+  max-width: 400px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 </style>
-
-<!--<style scoped>-->
-<!--/* 继承自原 index.html 的样式 */-->
-<!--.login-container {-->
-<!--  background-color: #f8f9fa;-->
-<!--  display: flex;-->
-<!--  align-items: center;-->
-<!--  justify-content: center;-->
-<!--  height: 100vh;-->
-<!--}-->
-<!--.auth-card {-->
-<!--  width: 100%;-->
-<!--  max-width: 400px;-->
-<!--  padding: 20px;-->
-<!--  box-shadow: 0 4px 6px rgba(0,0,0,0.1);-->
-<!--}-->
-<!--</style>-->

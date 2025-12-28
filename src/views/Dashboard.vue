@@ -111,24 +111,8 @@ onMounted(init);
   </div>
 </template>
 
-<!--<style scoped>-->
-<!--.app-wrapper { height: 100vh; width: 100vw; overflow: hidden; }-->
-<!--.main-content { background: #f8f9fa; }-->
-<!--</style>-->
-
 <style scoped>
-.app-wrapper {
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  background: var(--bg-main);
-}
-.main-content {
-  background: transparent;
-  transition: all 0.3s;
-}
-/* 给文档管理视图增加一些内边距，使其看起来更像独立的模块 */
-.p-4 {
-  padding: 2rem 5% !important;
-}
+.app-wrapper { height: 100vh; width: 100vw; overflow: hidden; }
+.main-content { background: #f8f9fa; }
 </style>
+

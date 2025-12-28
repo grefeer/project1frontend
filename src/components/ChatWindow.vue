@@ -10,38 +10,9 @@ const scrollBox = ref(null);
 const isWaiting = ref(false); // 是否正在等待 AI 回答
 const memoryId = ref(0);
 const isSending = ref(false); // 状态锁
+
+
 let pollTimer = null;
-
-// 新增：文件上传相关
-const fileInput = ref(null);
-// 修改后的 handleFileUpload 函数
-const handleFileUpload = async (e) => {
-  const files = e.target.files;
-  if (!files.length) return;
-
-  try {
-    for (let f of files) {
-      const formData = new FormData();
-      formData.append('file', f);
-      // 使用 props 传入的 sessionId
-      formData.append('sessionId', props.sessionId);
-
-      const res = await request.post('/document/upload', formData,{
-        timeout: 60000 // 设置为 60 秒
-      });
-
-      if (res.data.code !== 200) {
-        throw new Error(res.data.message || '上传出错');
-      }
-    }
-    alert('所有文件上传成功');
-  } catch (err) {
-    console.error('上传失败:', err);
-    alert('上传失败: ' + err.message);
-  } finally {
-    e.target.value = '';
-  }
-};
 
 // 解析消息逻辑：处理合并 AI 思考过程
 const processMessages = (rawMessages) => {
@@ -235,10 +206,6 @@ onUnmounted(stopPolling);
 
     <div class="p-3 border-top">
       <div class="input-group">
-        <input type="file" ref="fileInput" class="d-none" @change="handleFileUpload" />
-        <button class="btn btn-outline-secondary" @click="$refs.fileInput.click()">
-          <i class="bi bi-paperclip"></i>
-        </button>
         <input v-model="inputMsg" class="form-control" @keyup.enter="send" :disabled="isWaiting" placeholder="输入您的问题...">
         <button class="btn btn-primary" @click="send" :disabled="isWaiting || !sessionId">发送</button>
       </div>
@@ -246,61 +213,8 @@ onUnmounted(stopPolling);
   </div>
 </template>
 
-<!--<style scoped>-->
-<!--.thought-box { border-left: 3px solid #6c757d; color: #495057; }-->
-<!--</style>-->
-
 <style scoped>
-.chat-window { background: var(--bg-main); }
-
-.message-area {
-  padding: 2rem 10% !important; /* 增加侧边留白，更像文档阅读模式 */
-}
-
-/* AI 消息样式 */
-.bg-light {
-  background-color: #ffffff !important;
-  border: 1px solid #e5e7eb !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-  border-radius: 4px 16px 16px 16px !important;
-}
-
-/* 用户消息样式 */
-.bg-primary {
-  background: var(--primary-color) !important;
-  border-radius: 16px 4px 16px 16px !important;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
-}
-
-.thought-box {
-  border-left: 2px solid #6366f1;
-  background: #f8fafc;
-  color: #64748b;
-  font-size: 0.85rem;
-  margin-bottom: 12px;
-}
-
-/* 输入区域 */
-.border-top {
-  border-top: none !important;
-  padding: 24px 10% !important;
-}
-.input-group {
-  background: #fff;
-  padding: 8px;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--card-shadow);
-  border: 1px solid #e5e7eb;
-}
-.form-control {
-  border: none !important;
-  box-shadow: none !important;
-  padding-left: 15px;
-}
-.btn-primary {
-  border-radius: 12px !important;
-  padding: 8px 20px;
-}
+.thought-box { border-left: 3px solid #6c757d; color: #495057; }
 </style>
 
 <!--<script setup>-->
