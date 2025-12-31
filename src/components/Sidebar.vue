@@ -89,29 +89,101 @@ defineEmits(['select-session', 'new-chat', 'switch-view']);
   </div>
 </template>
 
-<style scoped>
-#sidebar { width: 260px; background: #171717; color: #ececec; display: flex; flex-direction: column; height: 100%; }
+<!--<style scoped>-->
+<!--#sidebar { width: 260px; background: #171717; color: #ececec; display: flex; flex-direction: column; height: 100%; }-->
 
-/* 视图切换样式 */
-.view-tabs { display: flex; border-bottom: 1px solid #4d4d4d; }
+<!--/* 视图切换样式 */-->
+<!--.view-tabs { display: flex; border-bottom: 1px solid #4d4d4d; }-->
+<!--.view-tab {-->
+<!--  flex: 1;-->
+<!--  background: transparent;-->
+<!--  border: none;-->
+<!--  color: #c5c5d2;-->
+<!--  padding: 10px;-->
+<!--  cursor: pointer;-->
+<!--}-->
+<!--.view-tab.active {-->
+<!--  background: #2f2f2f;-->
+<!--  color: #fff;-->
+<!--  border-bottom: 2px solid #0d6efd;-->
+<!--}-->
+<!--.view-tab:hover { background: #2f2f2f; }-->
+
+<!--.sidebar-btn { margin: 10px; border: 1px solid #4d4d4d; color: #fff; border-radius: 6px; padding: 10px; text-align: left; background: transparent; }-->
+<!--.sidebar-btn:hover { background: #2f2f2f; }-->
+<!--.nav-link-custom { padding: 10px 20px; color: #c5c5d2; cursor: pointer; display: flex; align-items: center; }-->
+<!--.nav-link-custom.active { background: #2f2f2f; color: #fff; }-->
+<!--.nav-link-custom:hover { background: #2f2f2f; }-->
+<!--</style>-->
+<style scoped>
+#sidebar {
+  width: 280px;
+  background: var(--sidebar-bg);
+  color: #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.view-tabs {
+  display: flex;
+  padding: 8px;
+  gap: 4px;
+  background: rgba(255,255,255,0.05);
+  margin: 16px;
+  border-radius: var(--radius-md);
+}
 .view-tab {
   flex: 1;
   background: transparent;
   border: none;
-  color: #c5c5d2;
-  padding: 10px;
+  color: #9ca3af;
+  padding: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 8px;
   cursor: pointer;
+  transition: all 0.2s;
 }
 .view-tab.active {
-  background: #2f2f2f;
+  background: rgba(255,255,255,0.1);
   color: #fff;
-  border-bottom: 2px solid #0d6efd;
 }
-.view-tab:hover { background: #2f2f2f; }
 
-.sidebar-btn { margin: 10px; border: 1px solid #4d4d4d; color: #fff; border-radius: 6px; padding: 10px; text-align: left; background: transparent; }
-.sidebar-btn:hover { background: #2f2f2f; }
-.nav-link-custom { padding: 10px 20px; color: #c5c5d2; cursor: pointer; display: flex; align-items: center; }
-.nav-link-custom.active { background: #2f2f2f; color: #fff; }
-.nav-link-custom:hover { background: #2f2f2f; }
+.sidebar-btn {
+  margin: 0 16px 16px;
+  border: 1px dashed rgba(255,255,255,0.2);
+  color: #fff;
+  border-radius: var(--radius-md);
+  padding: 12px;
+  background: transparent;
+  transition: all 0.2s;
+}
+.sidebar-btn:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.4);
+}
+
+.nav-link-custom {
+  padding: 10px 20px;
+  margin: 2px 12px;
+  color: #9ca3af;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+}
+.nav-link-custom.active {
+  background: var(--primary-color);
+  color: #fff;
+}
+.nav-link-custom:hover:not(.active) {
+  background: rgba(255,255,255,0.05);
+}
+
+.user-section {
+  background: rgba(0,0,0,0.2);
+}
 </style>
