@@ -265,7 +265,7 @@ const startPolling = () => {
       if (res.data.code === 200 || res.data.code === 206) {
         const data = res.data.data; // 假设返回格式包含 messages 和 status
         if (data && data.answer && data.answer.length > 0) {
-          processMessages(data.answer);
+          processMessages(data.answer, data.memoryIds);
           memoryId.value = data.currentChatMemoryCount;
 
           // messages.value.splice(baseIndex, messages.value.length - baseIndex, ...newAiMessages);
