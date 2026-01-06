@@ -68,8 +68,8 @@ const confirmDelete = async () => {
 
   try {
     let sessionId =  props.sessionId;
-    await request.post(`/qa/chatMemory/delete/${sessionId}`, {
-      memoryIds: allMemoryIds // ✅ 这才是正确的 memoryIds 集合
+    await request.delete(`/qa/chatMemory/delete/${sessionId}`, {
+      data: allMemoryIds // ✅ 这才是正确的 memoryIds 集合
     });
 
     // 重新加载会话
