@@ -1,29 +1,28 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import request from '@/utilis/requests';
-
 import Sidebar from '@/components/Sidebar.vue';
 import ChatWindow from '@/components/ChatWindow.vue';
-import DocumentManager from '@/components/DocumentManager.vue'; // 引入文档管理组件
-const user = ref({ username: 'Loading...' });
+import DocumentManager from '@/components/DocumentManager.vue';
+import UserManagement from '@/views/UserManagement.vue' // ✅ 新增导入
+
+const user = ref({ username: 'Loading...', role: '' });
 const sessions = ref([]);
 const currentSessionId = ref(null);
-const activeView = ref('chat'); // 默认显示对话视图
-const isCreating = ref(false); // 状态锁
+const activeView = ref('chat');
+const isCreating = ref(false);
 
 const init = async () => {
   try {
     const userRes = await request.get('/user/info');
     user.value = userRes.data.data;
 
-    // 调用获取所有会话元数据的接口
     const res = await request.get('/qa/chatMemory');
     if (res.data.code === 200) {
-      // 格式化会话数据
       sessions.value = Object.entries(res.data.data).map(([id, name]) => ({
         id: parseInt(id),
         title: name || `会话 ${id}`,
-        messages: []
+        messages: [],
       }));
     }
 
@@ -36,19 +35,16 @@ const init = async () => {
 };
 
 const handleNewChat = async () => {
-  if (isCreating.value) return; // 如果正在创建，则直接返回
+  if (isCreating.value) return;
   isCreating.value = true;
-
   try {
-    // 调用后端创建新会话的接口
     const res = await request.get(`/qa/chatMemory/create`);
     if (res.data.code === 200) {
-      // 检查前端是否已经存在该 ID，防止重复 push
       if (!sessions.value.find(s => s.id === res.data.data.sessionId)) {
         sessions.value.push({
           id: res.data.data.sessionId,
           title: res.data.data.sessionName,
-          messages: []
+          messages: [],
         });
       }
       currentSessionId.value = res.data.data.sessionId;
@@ -56,11 +52,10 @@ const handleNewChat = async () => {
   } catch (err) {
     console.error("创建新会话失败", err);
   } finally {
-    isCreating.value = false; // 无论结果如何，解锁
+    isCreating.value = false;
   }
 };
 
-// 重命名会话
 const renameSession = async (sessionId, newName) => {
   try {
     await request.get(`/qa/chatMemory/reName/${sessionId}`);
@@ -73,7 +68,6 @@ const renameSession = async (sessionId, newName) => {
   }
 };
 
-// 切换视图
 const handleViewSwitch = (view) => {
   activeView.value = view;
 };
@@ -87,6 +81,7 @@ onMounted(init);
         :sessions="sessions"
         :currentSessionId="currentSessionId"
         :username="user.username"
+        :role="user.role"
         :active-view="activeView"
         @select-session="currentSessionId = $event"
         @new-chat="handleNewChat"
@@ -94,27 +89,17 @@ onMounted(init);
         @switch-view="handleViewSwitch"
     />
     <div class="main-content flex-grow-1 overflow-auto">
-      <!-- 根据当前视图显示不同内容 -->
-      <ChatWindow
-          v-if="activeView === 'chat'"
-          :sessionId="currentSessionId"
-          @session-updated="(updatedSession) => {
-            const index = sessions.value.findIndex(s => s.id === updatedSession.id);
-            if (index !== -1) sessions.value[index] = updatedSession;
-          }"
-      />
-
+      <ChatWindow v-if="activeView === 'chat'" :sessionId="currentSessionId" @session-updated="(updatedSession) => { const index = sessions.value.findIndex(s => s.id === updatedSession.id); if (index !== -1) sessions.value[index] = updatedSession; }" />
       <div v-if="activeView === 'documents'" class="p-4">
         <DocumentManager />
+      </div>
+      <!-- 用户管理视图 (仅管理员可见) -->
+      <div v-if="activeView === 'users'" class="p-4">
+        <UserManagement />
       </div>
     </div>
   </div>
 </template>
-
-<!--<style scoped>-->
-<!--.app-wrapper { height: 100vh; width: 100vw; overflow: hidden; }-->
-<!--.main-content { background: #f8f9fa; }-->
-<!--</style>-->
 
 <style scoped>
 .app-wrapper {
