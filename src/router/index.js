@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/Login.vue'
 import Dashboard from '../views/Dashboard.vue'
 import UserManagement from '../views/UserManagement.vue'
+import TagManagement from '../views/TagManagement.vue'
 
 const routes = [
     { path: '/', name: 'Login', component: Login },
@@ -25,7 +26,22 @@ const routes = [
                     next('/dashboard')
                 }
             }
-        } }
+        } },
+    // 在路由数组中添加
+    {path: '/tags', name: 'TagManagement', component: TagManagement, beforeEnter: (to, from, next) => {
+            const token = localStorage.getItem('token')
+            if (!token) {
+                next('/')
+            } else {
+                const user = JSON.parse(localStorage.getItem('user'))
+                if (user && user.role === 'ADMIN') {
+                    next()
+                } else {
+                    next('/dashboard')
+                }
+            }
+        }
+    }
 ]
 
 const router = createRouter({

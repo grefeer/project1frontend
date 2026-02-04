@@ -17,6 +17,10 @@ defineEmits(['select-session', 'new-chat', 'switch-view']);
       <button v-if="role === 'ADMIN'" class="view-tab" :class="{ active: activeView === 'users' }" @click="$emit('switch-view', 'users')">
         <i class="bi bi-people"></i> 用户管理
       </button>
+      <!-- 如果是管理员，显示标签管理 -->
+      <button v-if="role === 'ADMIN'" class="view-tab" :class="{ active: activeView === 'tags' }" @click="$emit('switch-view', 'tags')">
+        <i class="bi bi-tags"></i> 标签管理
+      </button>
     </div>
 
     <button class="sidebar-btn" @click="$emit('new-chat')">

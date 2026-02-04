@@ -3,11 +3,18 @@
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h4>用户管理</h4>
-        <button class="btn btn-primary" @click="showAddModal = true">
-          <i class="bi bi-plus"></i> 添加用户
-        </button>
+        <div class="d-flex align-items-center">
+          <div class="input-group me-3">
+            <input type="text" class="form-control" v-model="keyword" placeholder="搜索用户名" @keyup.enter="handleSearch">
+            <button class="btn btn-outline-secondary" @click="handleSearch">
+              <i class="bi bi-search"></i>
+            </button>
+          </div>
+          <button class="btn btn-primary" @click="showAddModal = true">
+            <i class="bi bi-plus"></i> 添加用户
+          </button>
+        </div>
       </div>
-
       <div class="card-body">
         <table class="table table-hover">
           <thead>
@@ -21,8 +28,10 @@
           </tr>
           </thead>
           <tbody>
-          <tr v-for="user in users" :key="user.id">
-            <td>{{ user.username }}</td>
+          <tr v-for="user in users" :key="user.userId" :data-user-id="user.userId">
+            <td @mouseover="showUserTags(user)" @mouseleave="hideUserTags" :data-user-id="user.userId">
+              {{ user.username }}
+            </td>
             <td>
                 <span class="badge" :class="{'bg-primary': user.role === 'ADMIN', 'bg-secondary': user.role === 'USERS'}">
                   {{ user.role === 'ADMIN' ? '管理员' : '普通用户' }}
@@ -39,6 +48,34 @@
           </tr>
           </tbody>
         </table>
+
+        <!-- 标签弹窗（如果有） -->
+        <!-- 美化后的标签弹窗 -->
+        <div
+            v-if="tagPopup"
+            class="tag-popup"
+            :style="{ top: popupTop + 'px', left: popupLeft + 'px' }"
+        >
+          <div class="tag-popup-header">
+            <span class="tag-popup-title">用户标签</span>
+          </div>
+          <div class="tag-popup-body">
+            <!-- 循环渲染每个标签，只展示需要的字段 -->
+            <div class="tag-item" v-for="(tag, index) in userTags" :key="tag.tagId || index">
+              <div class="tag-name">{{ tag.tagName }}</div>
+              <div class="tag-desc">{{ tag.description }}</div>
+              <div class="tag-parent">
+                <span class="tag-label">父标签：</span>
+                <span class="tag-value">{{ tag.parentTag || '无父标签' }}</span>
+              </div>
+            </div>
+            <!-- 无标签时的友好提示 -->
+            <div class="no-tag" v-if="userTags.length === 0">
+              该用户暂无标签
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -99,6 +136,11 @@ const pageSize = ref(10); // 每页显示10条
 const total = ref(0);     // 总记录数
 const keyword = ref('');
 
+const userTags = ref([]);
+const currentUserUsername = ref('');
+const tagPopup = ref(false);
+const popupTop = ref(0);
+const popupLeft = ref(0);
 
 const fetchUsers = async () => {
   try {
@@ -119,6 +161,53 @@ const fetchUsers = async () => {
   }
 };
 
+const showUserTags = async (user) => {
+  try {
+    const userId = Number(user.userId);
+
+    // 获取当前用户的标签
+    const res = await request.get(`/tag/list/tag/admin`, {
+      params: {
+        userId: userId,
+      }
+    });
+
+    if (res.data.code === 200) {
+      userTags.value = res.data.data;
+      currentUserUsername.value = user.username;
+
+      // 【关键修复】先获取元素，再判断是否存在
+      const targetElement = document.querySelector(`[data-user-id="${user.userId}"]`);
+      // 空值判断：元素不存在则不显示弹窗
+      if (!targetElement) {
+        console.warn(`未找到userId为${user.userId}的元素`);
+        tagPopup.value = false;
+        return;
+      }
+
+      // 计算弹出框位置
+      const rect = targetElement.getBoundingClientRect();
+      popupTop.value = rect.bottom + 10;
+      popupLeft.value = rect.left;
+
+      tagPopup.value = true;
+    }
+  } catch (err) {
+    console.error('获取用户标签失败', err);
+    alert('获取用户标签失败');
+    // 异常时关闭弹窗，避免状态异常
+    tagPopup.value = false;
+  }
+};
+
+const hideUserTags = () => {
+  tagPopup.value = false;
+};
+
+const handleSearch = () => {
+  fetchUsers();
+};
+
 const addUser = async () => {
   if (!newUser.value.username ||
       !newUser.value.password ||
@@ -133,7 +222,7 @@ const addUser = async () => {
     if (res.data.code === 200) {
       alert('用户创建成功');
       showAddModal.value = false;
-      newUser.value = { username: '', password: '', role: 'USERS' , phone:'18977775555', email:'test11111@XXX.com'};
+      newUser.value = { username: '', password: '', role: 'USERS', phone: '18977775555', email: 'test11111@XXX.com' };
       await fetchUsers();
     } else {
       alert(res.data.message || '创建失败');
@@ -200,5 +289,94 @@ onMounted(fetchUsers);
 .modal {
   display: block;
   background-color: rgba(0,0,0,0.5);
+}
+/* 标签弹窗主样式 */
+.tag-popup {
+  position: fixed;
+  z-index: 9999; /* 确保在最上层 */
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  width: 280px; /* 固定宽度，避免变形 */
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* 弹窗头部 */
+.tag-popup-header {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  color: white;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* 弹窗内容区 */
+.tag-popup-body {
+  padding: 16px;
+}
+
+/* 单个标签项 */
+.tag-item {
+  padding: 12px;
+  border-radius: 6px;
+  background-color: #f8fafc;
+  margin-bottom: 8px;
+  border-left: 3px solid #4f46e5;
+}
+
+/* 标签名称 */
+.tag-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+/* 标签描述 */
+.tag-desc {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+/* 父标签区域 */
+.tag-parent {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.tag-label {
+  font-weight: 500;
+}
+
+.tag-value {
+  color: #475569;
+}
+
+/* 无标签提示 */
+.no-tag {
+  text-align: center;
+  padding: 16px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+/* 弹窗动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 避免弹窗超出页面右侧 */
+.tag-popup {
+  max-width: calc(100vw - 40px); /* 限制最大宽度，防止溢出 */
 }
 </style>

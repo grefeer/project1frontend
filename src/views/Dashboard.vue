@@ -4,7 +4,8 @@ import request from '@/utilis/requests';
 import Sidebar from '@/components/Sidebar.vue';
 import ChatWindow from '@/components/ChatWindow.vue';
 import DocumentManager from '@/components/DocumentManager.vue';
-import UserManagement from '@/views/UserManagement.vue' // ✅ 新增导入
+import UserManagement from '@/views/UserManagement.vue';
+import TagManagement from '@/views/TagManagement.vue';
 
 const user = ref({ username: 'Loading...', role: '' });
 const sessions = ref([]);
@@ -96,6 +97,10 @@ onMounted(init);
       <!-- 用户管理视图 (仅管理员可见) -->
       <div v-if="activeView === 'users'" class="p-4">
         <UserManagement />
+      </div>
+      <!-- 标签管理视图 (仅管理员可见) -->
+      <div v-if="activeView === 'tags'" class="p-4">
+        <TagManagement />
       </div>
     </div>
   </div>

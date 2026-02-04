@@ -19,6 +19,13 @@ const reconnectCount = ref(0);
 const MAX_RECONNECT_COUNT = 3;
 const reconnectIntervals = [10000, 20000, 40000];
 
+const tags = ref([]);
+const selectedTagId = ref(null);
+const showTagSelectionModal = ref(false);
+
+const fileInputRef = ref(null);
+const selectedFiles = ref(null); // 临时保存选中的文件
+
 const BASE_URL = '';
 
 // const fetchDocs = async () => {
@@ -32,6 +39,126 @@ const BASE_URL = '';
 //   docs.value = res.data.data.list || [];
 // };
 // 获取文档列表（带分页参数）
+
+// 第一步：开始上传流程（点击“上传文档”）
+const startUploadFlow = async () => {
+  try {
+    // 1. 获取用户标签
+    const res = await request.get('/tag/list/tag/user');
+    if (res.data.code === 200) {
+      tags.value = res.data.data;
+    } else {
+      alert('获取标签失败：' + (res.data.message || '未知错误'));
+      return;
+    }
+
+    if (tags.value.length === 0) {
+      alert('您没有可用的标签，请先创建或加入标签');
+      return;
+    }
+
+    // 2. 显示标签选择模态框
+    selectedTagId.value = null;
+    showTagSelectionModal.value = true;
+  } catch (err) {
+    console.error('获取标签失败:', err);
+    alert('获取标签失败，请检查网络');
+  }
+};
+
+// 第二步：用户在模态框中确认标签，并触发文件选择
+const confirmTagAndSelectFiles = () => {
+  if (!selectedTagId.value) {
+    alert('请选择一个标签');
+    return;
+  }
+
+  // 关闭模态框
+  showTagSelectionModal.value = false;
+
+  // ✅ 此处是用户点击“选择文件”按钮，属于用户手势，可安全触发文件选择
+  nextTick(() => {
+    fileInputRef.value?.click();
+  });
+};
+// 第三步：用户选择文件后，立即上传
+const onFileSelectedForUpload = async (e) => {
+  const files = e.target.files;
+  if (!files || files.length === 0) {
+    return; // 用户取消了文件选择
+  }
+
+  try {
+    for (let f of files) {
+      const formData = new FormData();
+      formData.append('file', f);
+      formData.append('sessionId', sessionId.value);
+      formData.append('tagId', selectedTagId.value); // 使用已选的标签
+
+      await request.post(`${BASE_URL}/document/upload`, formData, { timeout: 60000 });
+    }
+
+    await fetchDocs();
+    initSSE();
+    alert('上传成功');
+  } catch (err) {
+    console.error('上传失败:', err);
+    alert('上传失败，请重试');
+  } finally {
+    // 清理状态
+    selectedTagId.value = null;
+    // 重置 input
+    if (fileInputRef.value) {
+      fileInputRef.value.value = '';
+    }
+  }
+};
+
+// 取消上传流程
+const cancelUpload = () => {
+  showTagSelectionModal.value = false;
+  selectedTagId.value = null;
+};
+// 触发文件选择
+const triggerFileSelect = () => {
+  fileInputRef.value?.click();
+};
+
+// 文件选中后
+const onFileSelected = async (e) => {
+  const files = e.target.files;
+  if (!files || files.length === 0) {
+    selectedFiles.value = null;
+    return;
+  }
+
+  // 获取用户标签
+  await fetchUserTags();
+
+  if (tags.value.length === 0) {
+    alert('您没有标签，请先创建或加入标签');
+    // 清空文件输入
+    fileInputRef.value.value = '';
+    return;
+  }
+  // 保存选中的文件
+  selectedFiles.value = Array.from(files);
+  showTagSelectionModal.value = true;
+};
+
+// 获取当前用户标签
+const fetchUserTags = async () => {
+  try {
+    const res = await request.get('/tag/list/tag/user');
+    if (res.data.code === 200) {
+      tags.value = res.data.data;
+    } else {
+      console.error('获取标签失败:', res.data.message);
+    }
+  } catch (err) {
+    console.error('获取标签失败:', err);
+  }
+};
 
 /**
  * 状态文字颜色（可选，提升视觉体验）
@@ -203,29 +330,56 @@ const doUpload = async (e) => {
   const files = e.target.files;
   if (!files.length) return;
 
+  // 获取用户标签
+  await fetchUserTags();
+
+  // 如果没有标签，提示用户
+  if (tags.value.length === 0) {
+    alert('您没有标签，请先创建或加入标签');
+    return;
+  }
+
+  // 显示标签选择模态框
+  showTagSelectionModal.value = true;
+};
+
+// 执行上传（使用 selectedFiles）
+const uploadWithSelectedTag = async () => {
+  if (!selectedTagId.value) {
+    alert('请选择一个标签');
+    return;
+  }
+
+  if (!selectedFiles.value || selectedFiles.value.length === 0) {
+    alert('未选择文件');
+    return;
+  }
+
   try {
-    for (let f of files) {
-      // 1. 必须使用 FormData 包装文件
+    for (let f of selectedFiles.value) {
       const formData = new FormData();
       formData.append('file', f);
       formData.append('sessionId', sessionId.value);
+      formData.append('tagId', selectedTagId.value);
 
-      // 2. 发送请求，不要手动设置 headers 里的 Content-Type
-      await request.post(`${BASE_URL}/document/upload`, formData,{
-        timeout: 60000 // 设置为 60 秒
-      });
+      await request.post(`${BASE_URL}/document/upload`, formData, { timeout: 60000 });
     }
-    await fetchDocs();
-    // 添加SSE连接
-    initSSE();
 
+    await fetchDocs();
+    initSSE();
     alert('上传成功');
   } catch (err) {
     console.error('上传失败:', err);
     alert('上传失败，请重试');
   } finally {
-    // 上传完成后清空 input，否则下次选择同一个文件不会触发 change 事件
-    e.target.value = '';
+    // 重置状态
+    selectedFiles.value = null;
+    selectedTagId.value = null;
+    showTagSelectionModal.value = false;
+    // 清空 input
+    if (fileInputRef.value) {
+      fileInputRef.value.value = '';
+    }
   }
 };
 
@@ -305,29 +459,51 @@ onUnmounted(() => {
   <div class="section border-bottom pb-3 mb-3">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="input-group w-50">
-        <input
-            type="text"
-            class="form-control"
-            v-model="keyword"
-            placeholder="搜索文档..."
-            @keyup.enter="handleSearch"
-        />
+        <input type="text" class="form-control" v-model="keyword" placeholder="搜索文档..." @keyup.enter="handleSearch" />
         <button class="btn btn-outline-secondary" @click="handleSearch">搜索</button>
       </div>
-      <input type="file" ref="fileInput" class="d-none" multiple @change="doUpload" />
-      <button class="btn btn-primary" @click="$refs.fileInput.click()">
+      <!-- 修改文件输入元素，移除 @change 事件 -->
+      <input type="file" ref="fileInputRef" class="d-none" multiple @change="onFileSelectedForUpload"/>
+      <!-- 修改上传按钮，使用 doUpload 方法 -->
+      <button class="btn btn-primary" @click="startUploadFlow">
         <i class="bi bi-upload"></i> 上传文档
       </button>
     </div>
-    <!-- 关键：ref="statusLogs" 必须和代码中的变量名一致 -->
-    <!-- 避免用v-if，改用v-show（v-if会销毁元素，导致ref为null） -->
+
+    <!-- 标签选择模态框 -->
+    <div class="modal fade" :class="{ 'show': showTagSelectionModal, 'd-block': showTagSelectionModal }" style="display: none;" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">选择标签</h5>
+            <button type="button" class="btn-close" @click="cancelUpload"></button>
+          </div>
+          <div class="modal-body">
+            <select class="form-select" v-model="selectedTagId">
+              <option value="">请选择标签</option>
+              <option v-for="tag in tags" :key="tag.tagId" :value="tag.tagId">{{ tag.tagName }}</option>
+            </select>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="cancelUpload">取消</button>
+            <!-- 关键：在这个按钮点击时触发文件选择 -->
+            <button type="button" class="btn btn-primary" @click="confirmTagAndSelectFiles">选择文件</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 状态日志容器 -->
     <div class="status-log-container" ref="statusLogContainer" v-show="true" style="height: 300px; overflow-y: auto;">
       <div v-for="(log, index) in statusLogs" :key="index" class="log-item">
         {{ log }}
       </div>
     </div>
+
+    <!-- 文档表格 -->
     <div class="table-responsive" style="max-height: 400px;">
       <table class="table table-hover align-middle">
+        <!-- 表头保持不变 -->
         <thead class="table-light sticky-top">
         <tr>
           <th>名称</th>
@@ -338,20 +514,17 @@ onUnmounted(() => {
         </tr>
         </thead>
         <tbody>
+        <!-- 表格行保持不变 -->
         <tr v-for="doc in docs" :key="doc.documentId">
           <td><i class="bi bi-file-earmark-text me-2"></i>{{ doc.documentName }}</td>
           <td>{{ (doc.fileSize / 1024).toFixed(1) }} KB</td>
           <td>{{ doc.uploadTime }}</td>
-<!--          <td>{{ doc.status }}</td>-->
-          <!-- 状态自动更新，绑定docs中的status字段 -->
           <td :style="{ color: getStatusColor(doc.status) }">
             {{ formatStatus(doc.status) }}
           </td>
           <td>
             <button class="btn btn-sm btn-link" @click="downloadDoc(doc)">下载</button>
-            <button class="btn btn-sm btn-link text-danger" @click="deleteDoc(doc.documentId)">
-              删除
-            </button>
+            <button class="btn btn-sm btn-link text-danger" @click="deleteDoc(doc.documentId)"> 删除 </button>
           </td>
         </tr>
         <tr v-if="docs.length === 0">
@@ -361,6 +534,7 @@ onUnmounted(() => {
       </table>
     </div>
 
+    <!-- 分页信息 -->
     <div class="d-flex justify-content-between align-items-center mt-3 px-2">
       <div class="text-muted small">
         共 {{ total }} 条记录，第 {{ pageNum }} / {{ totalPages || 1 }} 页
