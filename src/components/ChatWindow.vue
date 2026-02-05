@@ -28,6 +28,8 @@ const ragModeOptions = ref([
 ]);
 const showRagDropdown = ref(false); // 控制RAG模式下拉菜单显示/隐藏
 
+const emit = defineEmits(['session-updated', 'auto-rename']); // 增加 auto-rename 声明
+
 // 进入删除模式
 const enterDeleteMode = () => {
   isDeleteMode.value = true;
@@ -234,6 +236,8 @@ const startPolling = () => {
         }
         // 如果后端标志回答结束（比如 status 为 1 或 'COMPLETED'）
         if (data.status === 'COMPLETED' || res.data.code === 200) {
+          if(3 <= memoryId.value && memoryId.value <= 10)
+            emit('auto-rename', props.sessionId);
           stopPolling();
         }
       }

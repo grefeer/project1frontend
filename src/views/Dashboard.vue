@@ -59,14 +59,21 @@ const handleNewChat = async () => {
 
 const renameSession = async (sessionId, newName) => {
   try {
-    await request.get(`/qa/chatMemory/reName/${sessionId}`);
-    const session = sessions.value.find(s => s.id === sessionId);
-    if (session) {
-      session.title = newName;
+    // 如果 newName 为 null，后端接口应处理为 AI 自动生成
+    const res = await request.get(`/qa/chatMemory/reName/${sessionId}${newName ? `?newName=${newName}` : ''}`);
+    if (res.data.code === 200) {
+      const updatedName = res.data.data; // 后端返回生成的新名字
+      const session = sessions.value.find(s => s.id === sessionId);
+      if (session) session.title = updatedName;
     }
   } catch (err) {
-    console.error("重命名会话失败", err);
+    console.error("重命名失败", err);
   }
+};
+
+const handleAutoRename = async (sessionId) => {
+  // 调用现有重命名逻辑，newName 传 null 触发后端 AI 总结
+  await renameSession(sessionId, null);
 };
 
 const handleViewSwitch = (view) => {
