@@ -98,8 +98,13 @@ const handleContextMenu = (event, memoryId) => {
 
 // 切换RAG模式
 const changeRagMode = (mode) => {
-  ragMode.value = mode;
-  showRagDropdown.value = false; // 选择后关闭下拉菜单
+  console.log("切换RAG模式为：", mode); // 新增日志，便于调试
+  ragMode.value = mode; // 确保赋值成功
+  showRagDropdown.value = false; // 强制关闭下拉菜单
+  // 新增：强制更新视图（解决响应式未触发的问题）
+  nextTick(() => {
+    showRagDropdown.value = false;
+  });
 };
 
 // 解析消息逻辑：处理合并 AI 思考过程
@@ -262,7 +267,16 @@ onMounted(() => {
     showContextMenu.value = false;
     showRagDropdown.value = false; // 全局点击关闭RAG下拉菜单
   });
+
+  // 新增：监听RAG菜单容器的点击，阻止冒泡到window
+  const ragMenuContainer = document.querySelector('.position-relative');
+  if (ragMenuContainer) {
+    ragMenuContainer.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+  }
 });
+
 </script>
 
 <template>
@@ -359,7 +373,7 @@ onMounted(() => {
                   v-for="option in ragModeOptions"
                   :key="option.value"
                   class="px-3 py-2 small cursor-pointer hover-bg-light"
-                  @click="changeRagMode(option.value)"
+                  @click.stop="changeRagMode(option.value)"
               >
                 {{ option.label }}
               </div>
