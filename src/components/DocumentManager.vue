@@ -24,21 +24,8 @@ const selectedTagId = ref(null);
 const showTagSelectionModal = ref(false);
 
 const fileInputRef = ref(null);
-const selectedFiles = ref(null); // 临时保存选中的文件
 
 const BASE_URL = '';
-
-// const fetchDocs = async () => {
-//   const res = await request.get(`/document/list`, {
-//     params: {
-//       keyword: keyword.value,
-//       pageNum: 1,
-//       pageSize: 100
-//     }
-//   });
-//   docs.value = res.data.data.list || [];
-// };
-// 获取文档列表（带分页参数）
 
 // 第一步：开始上传流程（点击“上传文档”）
 const startUploadFlow = async () => {
@@ -118,46 +105,6 @@ const onFileSelectedForUpload = async (e) => {
 const cancelUpload = () => {
   showTagSelectionModal.value = false;
   selectedTagId.value = null;
-};
-// 触发文件选择
-const triggerFileSelect = () => {
-  fileInputRef.value?.click();
-};
-
-// 文件选中后
-const onFileSelected = async (e) => {
-  const files = e.target.files;
-  if (!files || files.length === 0) {
-    selectedFiles.value = null;
-    return;
-  }
-
-  // 获取用户标签
-  await fetchUserTags();
-
-  if (tags.value.length === 0) {
-    alert('您没有标签，请先创建或加入标签');
-    // 清空文件输入
-    fileInputRef.value.value = '';
-    return;
-  }
-  // 保存选中的文件
-  selectedFiles.value = Array.from(files);
-  showTagSelectionModal.value = true;
-};
-
-// 获取当前用户标签
-const fetchUserTags = async () => {
-  try {
-    const res = await request.get('/tag/list/tag/user');
-    if (res.data.code === 200) {
-      tags.value = res.data.data;
-    } else {
-      console.error('获取标签失败:', res.data.message);
-    }
-  } catch (err) {
-    console.error('获取标签失败:', err);
-  }
 };
 
 /**
@@ -322,64 +269,6 @@ const changePage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
     pageNum.value = page;
     fetchDocs();
-  }
-};
-
-// 修改后的 doUpload 函数
-const doUpload = async (e) => {
-  const files = e.target.files;
-  if (!files.length) return;
-
-  // 获取用户标签
-  await fetchUserTags();
-
-  // 如果没有标签，提示用户
-  if (tags.value.length === 0) {
-    alert('您没有标签，请先创建或加入标签');
-    return;
-  }
-
-  // 显示标签选择模态框
-  showTagSelectionModal.value = true;
-};
-
-// 执行上传（使用 selectedFiles）
-const uploadWithSelectedTag = async () => {
-  if (!selectedTagId.value) {
-    alert('请选择一个标签');
-    return;
-  }
-
-  if (!selectedFiles.value || selectedFiles.value.length === 0) {
-    alert('未选择文件');
-    return;
-  }
-
-  try {
-    for (let f of selectedFiles.value) {
-      const formData = new FormData();
-      formData.append('file', f);
-      formData.append('sessionId', sessionId.value);
-      formData.append('tagId', selectedTagId.value);
-
-      await request.post(`${BASE_URL}/document/upload`, formData, { timeout: 60000 });
-    }
-
-    await fetchDocs();
-    initSSE();
-    alert('上传成功');
-  } catch (err) {
-    console.error('上传失败:', err);
-    alert('上传失败，请重试');
-  } finally {
-    // 重置状态
-    selectedFiles.value = null;
-    selectedTagId.value = null;
-    showTagSelectionModal.value = false;
-    // 清空 input
-    if (fileInputRef.value) {
-      fileInputRef.value.value = '';
-    }
   }
 };
 
