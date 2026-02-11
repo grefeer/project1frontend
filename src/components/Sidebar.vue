@@ -109,10 +109,28 @@ const triggerRename = () => {
       </div>
     </div>
 
-    <div class="sidebar-footer">
-      <div class="user-info">
-        <div class="avatar-sm">{{ username.charAt(0).toUpperCase() }}</div>
-        <span class="username-text ms-2 text-truncate">{{ username }}</span>
+    <div class="sidebar-footer border-top border-secondary p-3">
+      <div
+          class="d-flex align-items-center p-2 rounded user-profile-btn"
+          :class="{ 'active-bg': activeView === 'profile' }"
+          @click="$emit('switch-view', 'profile')"
+          style="cursor: pointer;"
+      >
+        <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2"
+             style="width: 32px; height: 32px; font-size: 14px; flex-shrink: 0;">
+          {{ username?.charAt(0).toUpperCase() }}
+        </div>
+
+        <div class="flex-grow-1 overflow-hidden">
+          <div class="text-truncate fw-bold" style="font-size: 0.9rem;">
+            {{ username }}
+          </div>
+          <div class="text-white" style="font-size: 0.75rem; opacity: 0.5;">
+            {{ role === 'ADMIN' ? '系统管理员' : '普通用户' }}
+          </div>
+        </div>
+
+        <i class="bi bi-gear-fill text-white ms-1" style="font-size: 1.1rem; opacity: 0.5;"></i>
       </div>
     </div>
   </div>
@@ -298,5 +316,21 @@ const triggerRename = () => {
 .sessions-list::-webkit-scrollbar-thumb {
   background: #343541;
   border-radius: 10px;
+}
+
+/* 添加到 Sidebar.vue 的 <style scoped> 中 */
+.user-profile-btn:hover {
+  background-color: rgb(79, 70, 228);
+}
+
+.user-profile-btn.active-bg {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.text-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #f1f5f9;
 }
 </style>

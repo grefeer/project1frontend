@@ -3,10 +3,34 @@
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h4>标签管理</h4>
-        <button class="btn btn-primary" @click="showAddModal = true">
-          <i class="bi bi-plus"></i> 新增标签
-        </button>
+
+        <div class="d-flex align-items-center">
+          <div class="input-group me-3" style="width: 280px;">
+            <input
+                type="text"
+                class="form-control"
+                v-model="keyword"
+                placeholder="搜索标签名称..."
+                @keyup.enter="handleSearch"
+            >
+            <button class="btn btn-outline-secondary" @click="handleSearch">
+              <i class="bi bi-search"></i>
+            </button>
+          </div>
+          <div class="d-flex gap-2">
+            <!--          <input type="file" ref="tagFileInput" style="display: none" accept=".csv" @change="onTagFileChange">-->
+            <input type="file" ref="tagFileInput" style="display: none" @change="onTagFileChange">
+            <button class="btn btn-primary" @click="$refs.tagFileInput.click()">
+              <i class="bi bi-tags"></i> 批量添加
+            </button>
+
+            <button class="btn btn-primary" @click="showAddModal = true">
+              <i class="bi bi-plus-lg"></i> 新增标签
+            </button>
+          </div>
+        </div>
       </div>
+
 
       <div class="card-body">
         <table class="table table-hover">
@@ -42,6 +66,45 @@
           </tr>
           </tbody>
         </table>
+
+        <div class="card-footer bg-white border-top-0 py-3">
+          <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center mb-0">
+              <li class="page-item" :class="{ disabled: pageNum === 1 }">
+                <button class="page-link" @click="changePage(pageNum - 1)">上一页</button>
+              </li>
+
+              <li class="page-item" v-if="totalPages > 0" :class="{ active: pageNum === 1 }">
+                <button class="page-link" @click="changePage(1)">1</button>
+              </li>
+
+              <li class="page-item disabled" v-if="pageNum > 3">
+                <span class="page-link">...</span>
+              </li>
+
+              <li class="page-item"
+                  v-for="p in totalPages"
+                  :key="p"
+                  v-show="p !== 1 && p !== totalPages && Math.abs(p - pageNum) <= 1"
+                  :class="{ active: pageNum === p }">
+                <button class="page-link" @click="changePage(p)">{{ p }}</button>
+              </li>
+
+              <li class="page-item disabled" v-if="pageNum < totalPages - 2">
+                <span class="page-link">...</span>
+              </li>
+
+              <li class="page-item" v-if="totalPages > 1" :class="{ active: pageNum === totalPages }">
+                <button class="page-link" @click="changePage(totalPages)">{{ totalPages }}</button>
+              </li>
+
+              <li class="page-item" :class="{ disabled: pageNum === totalPages || totalPages === 0 }">
+                <button class="page-link" @click="changePage(pageNum + 1)">下一页</button>
+              </li>
+            </ul>
+          </nav>
+        </div>
+
       </div>
     </div>
 
@@ -143,7 +206,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import {ref, onMounted, computed} from 'vue';
 import request from '@/utilis/requests';
 
 const tags = ref([]);
@@ -155,6 +218,7 @@ const pageNum = ref(1);
 const pageSize = ref(10); // 每页显示10条
 const total = ref(0);     // 总记录数
 const keyword = ref('');
+const totalPages = computed(() => Math.ceil(total.value / pageSize.value));
 
 const userPopup = ref(false);
 const usersInTag = ref([]);
@@ -180,6 +244,18 @@ const fetchTags = async () => {
   } catch (err) {
     console.error('获取标签列表失败', err);
     alert('获取标签列表失败');
+  }
+};
+
+const handleSearch = () => {
+  pageNum.value = 1; // 搜索时重置回第一页
+  fetchTags();
+};
+
+const changePage = (page) => {
+  if (page >= 1 && page <= totalPages.value) {
+    pageNum.value = page;
+    fetchTags(); // 重新加载数据
   }
 };
 
@@ -244,6 +320,48 @@ const addUserToTag = async () => {
     alert('添加用户到标签失败');
   }
 };
+
+/**
+ * 批量添加标签（CSV文件上传）
+ * @param {File} file - 包含标签信息的CSV文件
+ * @returns {Promise}
+ */
+const batchCreateTags = async (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request({
+    url: '/tag/create/batch',
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
+/**
+ * 响应标签 CSV 文件选择
+ */
+const onTagFileChange = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  try {
+    const res = await batchCreateTags(file);
+    if (res.data.code === 200) {
+      alert('批量添加标签成功');
+      await fetchTags(); // 刷新列表
+    } else {
+      alert(`批量添加失败: ${res.data.message}`);
+    }
+  } catch (err) {
+    console.error('批量添加标签异常', err);
+    alert('批量添加过程中发生错误');
+  } finally {
+    event.target.value = '';
+  }
+};
+
 
 const addTag = async () => {
   if (!newTag.value.tagName) {

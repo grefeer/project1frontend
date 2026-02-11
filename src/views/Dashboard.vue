@@ -6,6 +6,7 @@ import ChatWindow from '@/components/ChatWindow.vue';
 import DocumentManager from '@/components/DocumentManager.vue';
 import UserManagement from '@/views/UserManagement.vue';
 import TagManagement from '@/views/TagManagement.vue';
+import Profile from '@/views/Profile.vue'; // 确保路径正确
 
 const user = ref({ username: 'Loading...', role: '' });
 const sessions = ref([]);
@@ -33,6 +34,11 @@ const init = async () => {
   } catch (err) {
     console.error("初始化失败", err);
   }
+};
+
+const handleLogout = () => {
+  localStorage.clear();
+  window.location.href = '/';
 };
 
 const handleNewChat = async () => {
@@ -91,12 +97,13 @@ onMounted(init);
         :username="user.username"
         :role="user.role"
         :active-view="activeView"
-        @select-session="currentSessionId = $event"
+        @select-session="currentSessionId = $event; activeView = 'chat'"
         @new-chat="handleNewChat"
         @rename-session="renameSession"
         @switch-view="handleViewSwitch"
     />
-    <div class="main-content flex-grow-1 overflow-auto">
+
+    <div class="main-content flex-grow-1 overflow-auto bg-light">
       <ChatWindow v-if="activeView === 'chat'" :sessionId="currentSessionId" @session-updated="(updatedSession) => { const index = sessions.value.findIndex(s => s.id === updatedSession.id); if (index !== -1) sessions.value[index] = updatedSession; }" />
       <div v-if="activeView === 'documents'" class="p-4">
         <DocumentManager />
@@ -108,6 +115,9 @@ onMounted(init);
       <!-- 标签管理视图 (仅管理员可见) -->
       <div v-if="activeView === 'tags'" class="p-4">
         <TagManagement />
+      </div>
+      <div v-if="activeView === 'profile'" class="h-100">
+        <Profile @logout="handleLogout" />
       </div>
     </div>
   </div>

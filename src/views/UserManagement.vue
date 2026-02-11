@@ -10,9 +10,35 @@
               <i class="bi bi-search"></i>
             </button>
           </div>
-          <button class="btn btn-primary" @click="showAddModal = true">
-            <i class="bi bi-plus"></i> 添加用户
-          </button>
+
+<!--          <div class="me-2">-->
+<!--            <input-->
+<!--                type="file"-->
+<!--                ref="userFileInput"-->
+<!--                style="display: none"-->
+<!--                accept=".csv"-->
+<!--                @change="onUserFileChange"-->
+<!--            >-->
+<!--            <button class="btn btn-outline-light" @click="$refs.userFileInput.click()">-->
+<!--              <i class="bi bi-file-earmark-arrow-up"></i> 批量注册-->
+<!--            </button>-->
+<!--          </div>-->
+
+<!--          <button class="btn btn-primary" @click="showAddModal = true">-->
+<!--            <i class="bi bi-plus"></i> 添加用户-->
+<!--          </button>-->
+          <div class="d-flex gap-2">
+<!--            <input type="file" ref="userFileInput" style="display: none" accept=".csv" @change="onUserFileChange">-->
+            <input type="file" ref="userFileInput" style="display: none" @change="onUserFileChange">
+            <button class="btn btn-primary" @click="$refs.userFileInput.click()">
+              <i class="bi bi-file-earmark-arrow-up"></i> 批量注册
+            </button>
+
+            <button class="btn btn-primary" @click="showAddModal = true">
+              <i class="bi bi-plus-lg"></i> 添加用户
+            </button>
+          </div>
+
         </div>
       </div>
       <div class="card-body">
@@ -142,6 +168,8 @@ const tagPopup = ref(false);
 const popupTop = ref(0);
 const popupLeft = ref(0);
 
+const userFileInput = ref(null);
+
 const fetchUsers = async () => {
   try {
     const res = await request.get('/tag/list', {
@@ -199,6 +227,55 @@ const showUserTags = async (user) => {
     tagPopup.value = false;
   }
 };
+
+/**
+ * 批量注册用户（CSV文件上传）
+ * @param {File} file - 包含用户信息的CSV文件
+ * @returns {Promise}
+ */
+const batchRegisterUser = async (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request({
+    url: '/user/register/batch',
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data' // 必须指定表单格式
+    }
+  })
+}
+
+/**
+ * 响应 CSV 文件选择并触发上传
+ */
+const onUserFileChange = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // // 校验文件格式
+  // if (!file.name.endsWith('.csv')) {
+  //   alert('请上传 CSV 格式的文件');
+  //   return;
+  // }
+
+  try {
+    const res = await batchRegisterUser(file);
+    if (res.data.code === 200) {
+      alert(`批量注册成功: ${res.data.message || '操作完成'}`);
+      await fetchUsers(); // 刷新列表
+    } else {
+      alert(`批量注册失败: ${res.data.message}`);
+    }
+  } catch (err) {
+    console.error('批量注册异常', err);
+    alert('批量注册过程中发生错误');
+  } finally {
+    // 清空 input，允许连续上传同名文件
+    event.target.value = '';
+  }
+};
+
 
 const hideUserTags = () => {
   tagPopup.value = false;
