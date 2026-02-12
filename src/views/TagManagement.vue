@@ -206,7 +206,7 @@
 </template>
 
 <script setup>
-import {ref, onMounted, computed} from 'vue';
+import {ref, onMounted, computed, nextTick} from 'vue';
 import request from '@/utilis/requests';
 
 const tags = ref([]);
@@ -281,13 +281,38 @@ const showUsersInTag = async (tag) => {
     if (res.data.code === 200) {
       usersInTag.value = res.data.data;
       currentTagName.value = tag.tagName;
-
-      // 计算弹出框位置
-      const rect = document.querySelector(`[data-tag-id="${tag.tagId}"]`).getBoundingClientRect();
-      popupTop.value = rect.bottom + 10;
-      popupLeft.value = rect.left;
-
+      const targetElement = document.querySelector(`[data-tag-id="${tag.tagId}"]`);
+      if (!targetElement) {
+        console.warn(`未找到tagId为${tag.tagId}的元素`);
+        userPopup.value = false;
+        return;
+      }
+      // 1. 基础坐标计算（原逻辑）
+      const rect = targetElement.getBoundingClientRect();
+      let tempTop = rect.bottom + 10;
+      let tempLeft = rect.left;
+      // 2. 开启弹窗（让DOM渲染）
       userPopup.value = true;
+      // 3. 弹窗DOM渲染后，获取实际宽高并做边界校验
+      await nextTick();
+      const popupElement = document.querySelector('.user-popup');
+      if (popupElement) {
+        const popupWidth = popupElement.offsetWidth; // 弹窗实际宽度
+        const popupHeight = popupElement.offsetHeight; // 弹窗实际高度
+        const screenWidth = window.innerWidth; // 屏幕可视宽度
+        const screenHeight = window.innerHeight; // 屏幕可视高度
+
+        // 计算最大可显示的left/top（防止超出屏幕，减10留边距）
+        const maxLeft = screenWidth - popupWidth - 10;
+        const maxTop = screenHeight - popupHeight - 10;
+
+        // 边界钳位：保证坐标在屏幕内
+        tempLeft = Math.max(0, Math.min(tempLeft, maxLeft));
+        tempTop = Math.max(0, Math.min(tempTop, maxTop));
+      }
+      // 4. 赋值最终坐标
+      popupTop.value = tempTop;
+      popupLeft.value = tempLeft;
     }
   } catch (err) {
     console.error('获取标签用户失败', err);
