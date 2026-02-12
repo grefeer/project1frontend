@@ -7,6 +7,7 @@ import DocumentManager from '@/components/DocumentManager.vue';
 import UserManagement from '@/views/UserManagement.vue';
 import TagManagement from '@/views/TagManagement.vue';
 import Profile from '@/views/Profile.vue'; // 确保路径正确
+import SystemOverview from '@/views/SystemOverview.vue'; // 引入新组件
 
 const user = ref({ username: 'Loading...', role: '' });
 const sessions = ref([]);
@@ -108,6 +109,11 @@ onMounted(init);
       <div v-if="activeView === 'documents'" class="p-4">
         <DocumentManager />
       </div>
+
+      <div v-if="activeView === 'dashboard'" class="p-4">
+        <SystemOverview />
+      </div>
+
       <!-- 用户管理视图 (仅管理员可见) -->
       <div v-if="activeView === 'users'" class="p-4">
         <UserManagement />

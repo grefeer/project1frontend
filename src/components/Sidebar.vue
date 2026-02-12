@@ -63,6 +63,17 @@ const triggerRename = () => {
       >
         <i class="bi bi-file-earmark"></i> 文档
       </button>
+
+      <button
+          v-if="role === 'ADMIN'"
+          class="view-tab"
+          :class="{ active: activeView === 'dashboard' }"
+          @click="$emit('switch-view', 'dashboard')"
+          title="系统仪表盘"
+      >
+        <i class="bi bi-speedometer2"></i> 概览
+      </button>
+
       <button
           v-if="role === 'ADMIN'"
           class="view-tab"
@@ -139,9 +150,9 @@ const triggerRename = () => {
 <style scoped>
 #sidebar {
   /* 关键：固定边栏大小，防止布局抖动 */
-  width: 260px;
-  min-width: 260px;
-  max-width: 260px;
+  width: 310px;
+  min-width: 310px;
+  max-width: 310px;
   flex-shrink: 0;
 
   background-color: #111827; /* 极深背景 */
