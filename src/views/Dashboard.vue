@@ -11,6 +11,7 @@ import SystemOverview from '@/views/SystemOverview.vue'; // 引入新组件
 
 const user = ref({ username: 'Loading...', role: '' });
 const sessions = ref([]);
+const favoriteSessions = ref([]);
 const currentSessionId = ref(null);
 const activeView = ref('chat');
 const isCreating = ref(false);
@@ -22,11 +23,30 @@ const init = async () => {
 
     const res = await request.get('/qa/chatMemory');
     if (res.data.code === 200) {
-      sessions.value = Object.entries(res.data.data).map(([id, name]) => ({
-        id: parseInt(id),
-        title: name || `会话 ${id}`,
-        messages: [],
-      }));
+      Object.entries(res.data.data).forEach(([id, name]) => {
+        // name类似于对话1::true,对话2::false，::是分隔符,后面的true，false是是否收藏，如果收藏，放入favoriteSessions中，否则放入sessions中
+        const sessionName = name || `会话 ${id}::false`;
+        const [title, isFavoriteStr] = sessionName.split('::');
+        const isFavorite = isFavoriteStr === 'true';
+        const sessionId = parseInt(id);
+
+        const sessionItem = {
+          id: sessionId,
+          title: title || `会话 ${sessionId}`, // 标题为空时用默认值
+          messages: [],
+        };
+        if (isFavorite) {
+          favoriteSessions.value.push(sessionItem);
+        } else {
+          sessions.value.push(sessionItem);
+        }
+
+      });
+      // sessions.value = Object.entries(res.data.data).map(([id, name]) => ({
+      //   id: parseInt(id),
+      //   title: name || `会话 ${id}`,
+      //   messages: [],
+      // }));
     }
 
     if (sessions.value.length > 0) {
@@ -78,9 +98,44 @@ const renameSession = async (sessionId, newName) => {
   }
 };
 
-const handleAutoRename = async (sessionId) => {
-  // 调用现有重命名逻辑，newName 传 null 触发后端 AI 总结
-  await renameSession(sessionId, null);
+// 收藏以及取消收藏session
+const setChatFavorite = async (sessionId, favorite) => {
+  try {
+    let res;
+    // favorite=1 表示收藏，favorite=0 表示取消收藏
+    if (favorite === 1) {
+      res = await request.post(`/qa/favorite/set/${sessionId}`);
+    } else {
+      res = await request.post(`/qa/favorite/reset/${sessionId}`);
+    }
+
+    if (res.data.code === 200) {
+      // 取消收藏逻辑：从收藏列表中过滤掉当前session
+      if (favorite === 0) {
+        const targetSession = sessions.value.find(s => s.id === sessionId);
+        if (targetSession) {
+          favoriteSessions.value = favoriteSessions.value.filter(s => s.id !== sessionId);
+          sessions.value.push(targetSession);
+        }
+      }
+      // 收藏逻辑：找到对应session，添加到收藏列表
+      else {
+        const targetSession = sessions.value.find(s => s.id === sessionId);
+        if (targetSession) {
+          // 去重：避免重复添加同一会话到收藏列表
+          const isAlreadyFavorited = favoriteSessions.value.some(s => s.id === sessionId);
+          if (!isAlreadyFavorited) {
+            favoriteSessions.value.push(targetSession);
+            sessions.value = sessions.value.filter(s => s.id !== sessionId);
+          }
+        }
+      }
+      console.log(`会话 ${sessionId} ${favorite === 0 ? '收藏' : '取消收藏'} 成功`);
+    }
+  } catch (err) {
+    // 修正错误提示（原错误提示是“重命名失败”，属于笔误）
+    console.error(`会话 ${sessionId} ${favorite === 0 ? '收藏' : '取消收藏'} 失败`, err);
+  }
 };
 
 const handleViewSwitch = (view) => {
@@ -94,6 +149,7 @@ onMounted(init);
   <div class="app-wrapper d-flex">
     <Sidebar
         :sessions="sessions"
+        :favoriteSessions="favoriteSessions"
         :currentSessionId="currentSessionId"
         :username="user.username"
         :role="user.role"
@@ -101,6 +157,7 @@ onMounted(init);
         @select-session="currentSessionId = $event; activeView = 'chat'"
         @new-chat="handleNewChat"
         @rename-session="renameSession"
+        @set-favorite-session="setChatFavorite"
         @switch-view="handleViewSwitch"
     />
 

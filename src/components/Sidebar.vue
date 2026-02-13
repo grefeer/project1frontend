@@ -1,14 +1,21 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 // 定义组件属性
-defineProps(['sessions', 'currentSessionId', 'username', 'role', 'activeView']);
+const props = defineProps(['sessions', 'favoriteSessions', 'currentSessionId', 'username', 'role', 'activeView']);
 
 // 定义组件事件（合并为一个 call，避免报错）
-const emit = defineEmits(['select-session', 'new-chat', 'switch-view', 'rename-session']);
+const emit = defineEmits(['select-session', 'new-chat', 'switch-view', 'rename-session', 'set-favorite-session']);
 
 // 右键菜单状态控制
 const contextMenu = ref({ visible: false, style: {}, targetSession: null });
+
+/**
+ * 判断会话是否为收藏状态
+ */
+const isFavorite = computed(() => (sessionId) => {
+  return props.favoriteSessions.some(item => item.id === sessionId);
+});
 
 /**
  * 显示自定义右键菜单
@@ -44,6 +51,29 @@ const triggerRename = () => {
     emit('rename-session', session.id, newName);
   }
 };
+
+/**
+ * 触发收藏对话逻辑
+ */
+const setFavorite = () => {
+  const session = contextMenu.value.targetSession;
+  if (!session) return;
+  emit('set-favorite-session', session.id, 1);
+  // 关闭右键菜单
+  contextMenu.value.visible = false;
+};
+
+/**
+ * 触发取消收藏对话逻辑
+ */
+const resetFavorite = () => {
+  const session = contextMenu.value.targetSession;
+  if (!session) return;
+  emit('set-favorite-session', session.id, 0);
+  // 关闭右键菜单
+  contextMenu.value.visible = false;
+};
+
 </script>
 
 <template>
@@ -96,27 +126,78 @@ const triggerRename = () => {
       <i class="bi bi-plus-lg me-2"></i>新建对话
     </button>
 
-    <div class="sessions-list flex-grow-1 overflow-auto px-2 mt-2">
-      <div
-          v-for="session in sessions"
-          :key="session.id"
-          class="session-item-container"
-          :class="{ 'is-active': currentSessionId === session.id }"
-          @click="$emit('select-session', session.id)"
-          @contextmenu.prevent="showContextMenu($event, session)"
-      >
-        <div class="active-indicator"></div>
-
-        <div class="session-content">
-          <i class="bi bi-chat-left-text me-2 icon-dim"></i>
-          <span class="session-title">{{ session.title }}</span>
+    <!-- 对话收藏栏（美化后） -->
+    <div class="favorite-section mt-2 px-2">
+      <!-- 收藏栏标题 -->
+      <div class="favorite-title mb-1 d-flex align-items-center">
+        <i class="bi bi-star-fill text-yellow-500 me-2"></i>
+        <span class="text-sm text-gray-400">已收藏</span>
+        <div class="favorite-divider flex-grow-1 ms-2"></div>
+      </div>
+      <!-- 收藏会话列表 -->
+      <div class="sessions-list favorite-sessions-list flex-grow-1 overflow-auto px-1">
+        <div
+            v-for="session in favoriteSessions"
+            :key="session.id"
+            class="session-item-container favorite-session-item"
+            :class="{ 'is-active': currentSessionId === session.id }"
+            @click="$emit('select-session', session.id)"
+            @contextmenu.prevent="showContextMenu($event, session)"
+        >
+          <div class="active-indicator"></div>
+          <div class="session-content">
+            <i class="bi bi-star-fill text-yellow-500 me-2"></i>
+            <span class="session-title">{{ session.title }}</span>
+          </div>
+        </div>
+        <!-- 空状态 -->
+        <div v-if="favoriteSessions.length === 0" class="empty-favorite text-center py-4 text-gray-500 text-sm">
+          <i class="bi bi-star me-1"></i>暂无收藏的对话
         </div>
       </div>
     </div>
 
+    <!-- 普通对话列表 -->
+    <div class="normal-sessions-section mt-3 px-2">
+      <!-- 普通会话标题 -->
+      <div class="normal-title mb-1 d-flex align-items-center">
+        <i class="bi bi-chat-left text-gray-400 me-2"></i>
+        <span class="text-sm text-gray-400">最近对话</span>
+        <div class="normal-divider flex-grow-1 ms-2"></div>
+      </div>
+      <div class="sessions-list flex-grow-1 overflow-auto px-1">
+        <div
+            v-for="session in sessions"
+            :key="session.id"
+            class="session-item-container"
+            :class="{ 'is-active': currentSessionId === session.id }"
+            @click="$emit('select-session', session.id)"
+            @contextmenu.prevent="showContextMenu($event, session)"
+        >
+          <div class="active-indicator"></div>
+          <div class="session-content">
+            <i class="bi bi-chat-left-text me-2 icon-dim"></i>
+            <span class="session-title">{{ session.title }}</span>
+          </div>
+        </div>
+        <!-- 空状态 -->
+        <div v-if="sessions.length === 0" class="empty-sessions text-center py-4 text-gray-500 text-sm">
+          <i class="bi bi-chat-left me-1"></i>暂无对话记录
+        </div>
+      </div>
+    </div>
+
+    <!-- 右键菜单（优化逻辑） -->
     <div v-if="contextMenu.visible" :style="contextMenu.style" class="context-menu shadow-lg">
       <div class="menu-item" @click="triggerRename">
         <i class="bi bi-pencil-square me-2"></i>重命名
+      </div>
+      <!-- 动态显示收藏/取消收藏 -->
+      <div v-if="!isFavorite(contextMenu.targetSession?.id)" class="menu-item" @click="setFavorite">
+        <i class="bi bi-star me-2"></i>收藏该对话
+      </div>
+      <div v-if="isFavorite(contextMenu.targetSession?.id)" class="menu-item" @click="resetFavorite">
+        <i class="bi bi-star-fill me-2 text-yellow-500"></i>取消收藏
       </div>
     </div>
 
@@ -149,18 +230,16 @@ const triggerRename = () => {
 
 <style scoped>
 #sidebar {
-  /* 关键：固定边栏大小，防止布局抖动 */
   width: 310px;
   min-width: 310px;
   max-width: 310px;
   flex-shrink: 0;
-
   background-color: #111827; /* 极深背景 */
   display: flex;
   flex-direction: column;
   height: 100vh;
   border-right: 1px solid #2d2d2d;
-  transition: none; /* 去掉过渡，防止切换时宽度闪烁 */
+  transition: none;
 }
 
 /* 视图切换 Tabs */
@@ -211,7 +290,7 @@ const triggerRename = () => {
   border-style: solid;
 }
 
-/* 会话列表项容器 */
+/* 会话列表项容器 - 基础样式 */
 .session-item-container {
   position: relative;
   display: flex;
@@ -221,19 +300,17 @@ const triggerRename = () => {
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
-  color: #acacbe; /* 未选中时的文字颜色较暗 */
+  color: #acacbe;
   user-select: none;
 }
 
-/* 悬停效果 (图二) */
 .session-item-container:hover {
   background-color: #2b2b2b;
   color: #fff;
 }
 
-/* 选中高亮状态 (图三) */
 .session-item-container.is-active {
-  background-color: #4f46e4; /* 选中时的深灰背景 */
+  background-color: #4f46e4;
   color: #ffffff;
   font-weight: 500;
 }
@@ -259,12 +336,91 @@ const triggerRename = () => {
   font-size: 0.875rem;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis; /* 关键：防止标题撑开边栏 */
+  text-overflow: ellipsis;
 }
 
 .icon-dim {
   font-size: 1rem;
   opacity: 0.6;
+}
+
+/* 收藏栏专属样式 */
+.favorite-section {
+  background: rgba(30, 41, 59, 0.3);
+  border-radius: 10px;
+  margin: 0 12px;
+  padding-bottom: 8px;
+}
+
+.favorite-title {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+}
+
+.text-yellow-500 {
+  color: #eab308;
+}
+
+.text-sm {
+  font-size: 0.75rem;
+}
+
+.text-gray-400 {
+  color: #94a3b8;
+}
+
+.text-gray-500 {
+  color: #64748b;
+}
+
+.favorite-divider, .normal-divider {
+  height: 1px;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.favorite-sessions-list {
+  max-height: 200px; /* 限制收藏栏高度 */
+}
+
+.favorite-session-item {
+  border-left: 2px solid transparent;
+}
+
+/* 3. 悬停效果优化：没选中前是淡金色背景 */
+.favorite-session-item:hover:not(.is-active) {
+  background-color: rgba(234, 179, 8, 0.15); /* 淡淡的金色透明背景 */
+  color: #fff;
+}
+
+/* 4. 如果你想让收藏对话里的图标在选中时也保持金色而不是变白 */
+.favorite-session-item.is-active .bi-star-fill {
+  color: #facc15 !important;
+}
+
+.favorite-session-item.is-active {
+  background-color: #cc6800 !important; /* 深金色背景，!important 确保覆盖上面的蓝色 */
+  color: #ffffff;
+  border-left: 2px solid #facc15; /* 选中时左侧条变为亮金色 */
+}
+
+.empty-favorite {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+/* 普通会话栏样式 */
+.normal-sessions-section {
+  margin: 0 12px;
+}
+
+.normal-title {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+}
+
+.empty-sessions {
+  color: #64748b;
+  font-size: 0.8rem;
 }
 
 /* 右键弹出菜单 */
@@ -295,41 +451,9 @@ const triggerRename = () => {
 .sidebar-footer {
   padding: 16px 12px;
   border-top: 1px solid #2d2d2d;
+  margin-top: auto; /* 固定在底部 */
 }
 
-.user-info {
-  display: flex;
-  align-items: center;
-  color: #ececf1;
-}
-
-.avatar-sm {
-  width: 32px;
-  height: 32px;
-  background: #343541;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  font-weight: bold;
-}
-
-.username-text {
-  font-size: 0.85rem;
-  max-width: 180px;
-}
-
-/* 隐藏滚动条但保留功能 */
-.sessions-list::-webkit-scrollbar {
-  width: 4px;
-}
-.sessions-list::-webkit-scrollbar-thumb {
-  background: #343541;
-  border-radius: 10px;
-}
-
-/* 添加到 Sidebar.vue 的 <style scoped> 中 */
 .user-profile-btn:hover {
   background-color: rgb(79, 70, 228);
 }
@@ -343,5 +467,17 @@ const triggerRename = () => {
   overflow: hidden;
   text-overflow: ellipsis;
   color: #f1f5f9;
+}
+
+/* 滚动条样式 */
+.sessions-list::-webkit-scrollbar {
+  width: 4px;
+}
+.sessions-list::-webkit-scrollbar-thumb {
+  background: #343541;
+  border-radius: 10px;
+}
+.sessions-list::-webkit-scrollbar-track {
+  background: transparent;
 }
 </style>
