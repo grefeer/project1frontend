@@ -24,7 +24,7 @@
               <i class="bi bi-tags"></i> 批量添加
             </button>
 
-            <button class="btn btn-primary" @click="showAddModal = true">
+            <button class="btn btn-primary" @click="() => { console.log('点击了新增'); showAddModal = true; }">
               <i class="bi bi-plus-lg"></i> 新增标签
             </button>
           </div>
@@ -171,7 +171,7 @@
         </div>
       </div>
     </div>
-
+    </div>
     <!-- 添加标签模态框 -->
     <div class="modal fade" :class="{show: showAddModal}" v-if="showAddModal" tabindex="-1">
       <div class="modal-dialog">
@@ -201,8 +201,8 @@
         </div>
       </div>
     </div>
-  </div>
-  </div>
+
+    </div>
 </template>
 
 <script setup>
