@@ -219,7 +219,6 @@ const startPolling = () => {
   stopPolling();
   pollTimer = setInterval(async () => {
     try {
-      // 3. 轮询状态 (路径严格对应: /qa/status)
       const res = await request.get('/qa/status', {
         params: {
           sessionId: props.sessionId,
@@ -228,13 +227,16 @@ const startPolling = () => {
       });
 
       if (res.data.code === 200 || res.data.code === 206) {
-        const data = res.data.data; // 假设返回格式包含 messages 和 status
+        const data = res.data.data;
         if (data && data.answer && data.answer.length > 0) {
           processMessages(data.answer, data.memoryIds);
-          memoryId.value = data.currentChatMemoryCount;
+          // 修复：更新为最新的memoryId（而非总数）
+          if (data.memoryIds && data.memoryIds.length > 0) {
+            memoryId.value = data.memoryIds[data.memoryIds.length - 1];
+          }
           scrollToBottom();
         }
-        // 如果后端标志回答结束（比如 status 为 1 或 'COMPLETED'）
+        // 回答完成时停止轮询
         if (data.status === 'COMPLETED' || res.data.code === 200) {
           if(3 <= memoryId.value && memoryId.value <= 10)
             emit('auto-rename', props.sessionId);
@@ -243,7 +245,10 @@ const startPolling = () => {
       }
 
     } catch (err) {
-      stopPolling();
+      console.error("轮询/status失败", err);
+      stopPolling(); // 出错时停止轮询，避免无限请求
+      isWaiting.value = false;
+      alert("获取回答失败，请重试"); // 可选：用户提示
     }
   }, 2000);
 };

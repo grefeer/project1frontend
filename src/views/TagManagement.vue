@@ -421,8 +421,13 @@ const removeUserFromTag = async (userId) => {
   if (!confirm('确定要移除该用户吗？')) return;
 
   try {
+
     // 注意：这里需要根据后端接口调整，可能需要使用 /api/v1/tag/remove/user/{userId}
-    const res = await request.delete(`/tag/remove/user/${userId}`);
+    const res = await request.delete(`/tag/remove/user/${userId}`, {
+      params: {
+        tagName: currentTagName.value // 传递tagName作为Query参数
+      }
+    });
     if (res.data.code === 200) {
       alert('用户移除成功');
       // 重新获取用户列表
@@ -440,7 +445,7 @@ const deleteTag = async (tagId) => {
   if (!confirm('确定要删除此标签吗？')) return;
 
   try {
-    const res = await request.delete(`/tag/delete/${tagId}`);
+    const res = await request.delete(`/tag/remove/tag/${tagId}`);
     if (res.data.code === 200) {
       alert('标签删除成功');
       await fetchTags();
