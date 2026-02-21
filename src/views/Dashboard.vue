@@ -98,7 +98,6 @@ const renameSession = async (sessionId, newName) => {
   }
 };
 
-// 收藏以及取消收藏session
 const setChatFavorite = async (sessionId, favorite) => {
   try {
     let res;
@@ -110,31 +109,37 @@ const setChatFavorite = async (sessionId, favorite) => {
     }
 
     if (res.data.code === 200) {
-      // 取消收藏逻辑：从收藏列表中过滤掉当前session
       if (favorite === 0) {
-        const targetSession = sessions.value.find(s => s.id === sessionId);
-        if (targetSession) {
-          favoriteSessions.value = favoriteSessions.value.filter(s => s.id !== sessionId);
+        // --- 取消收藏逻辑修正 ---
+        // 1. 从收藏列表中找到这个会话对象
+        const index = favoriteSessions.value.findIndex(s => s.id === sessionId);
+        if (index !== -1) {
+          const targetSession = favoriteSessions.value[index];
+          // 2. 从收藏列表移除
+          favoriteSessions.value.splice(index, 1);
+          // 3. 添加回普通列表
           sessions.value.push(targetSession);
         }
-      }
-      // 收藏逻辑：找到对应session，添加到收藏列表
-      else {
-        const targetSession = sessions.value.find(s => s.id === sessionId);
-        if (targetSession) {
-          // 去重：避免重复添加同一会话到收藏列表
+      } else {
+        // --- 收藏逻辑修正 ---
+        // 1. 从普通列表中找到这个会话对象
+        const index = sessions.value.findIndex(s => s.id === sessionId);
+        if (index !== -1) {
+          const targetSession = sessions.value[index];
+          // 2. 检查是否已经在收藏夹（防重）
           const isAlreadyFavorited = favoriteSessions.value.some(s => s.id === sessionId);
           if (!isAlreadyFavorited) {
+            // 3. 从普通列表移除并加入收藏列表
+            sessions.value.splice(index, 1);
             favoriteSessions.value.push(targetSession);
-            sessions.value = sessions.value.filter(s => s.id !== sessionId);
           }
         }
       }
-      console.log(`会话 ${sessionId} ${favorite === 0 ? '收藏' : '取消收藏'} 成功`);
+      // 这里的 log 逻辑之前写反了，favorite 为 0 是取消收藏
+      console.log(`会话 ${sessionId} ${favorite === 1 ? '收藏' : '取消收藏'} 成功`);
     }
   } catch (err) {
-    // 修正错误提示（原错误提示是“重命名失败”，属于笔误）
-    console.error(`会话 ${sessionId} ${favorite === 0 ? '收藏' : '取消收藏'} 失败`, err);
+    console.error(`操作失败`, err);
   }
 };
 
