@@ -126,80 +126,63 @@ const resetFavorite = () => {
       <i class="bi bi-plus-lg me-2"></i>新建对话
     </button>
 
-    <!-- 对话收藏栏（美化后） -->
-    <div class="favorite-section mt-2 px-2">
-      <!-- 收藏栏标题 -->
-      <div class="favorite-title mb-1 d-flex align-items-center">
-        <i class="bi bi-star-fill text-yellow-500 me-2"></i>
-        <span class="text-sm text-gray-400">已收藏</span>
-        <div class="favorite-divider flex-grow-1 ms-2"></div>
-      </div>
-      <!-- 收藏会话列表 -->
-      <div class="sessions-list favorite-sessions-list flex-grow-1 overflow-auto px-1">
-        <div
-            v-for="session in favoriteSessions"
-            :key="session.id"
-            class="session-item-container favorite-session-item"
-            :class="{ 'is-active': currentSessionId === session.id }"
-            @click="$emit('select-session', session.id)"
-            @contextmenu.prevent="showContextMenu($event, session)"
-        >
-          <div class="active-indicator"></div>
-          <div class="session-content">
-            <i class="bi bi-star-fill text-yellow-500 me-2"></i>
-            <span class="session-title">{{ session.title }}</span>
+    <div class="flex-grow-1 overflow-y-auto sessions-scroll-area">
+      <div class="favorite-section mt-2 px-2">
+        <div class="favorite-title mb-1 d-flex align-items-center">
+          <i class="bi bi-star-fill text-yellow-500 me-2"></i>
+          <span class="text-sm text-gray-400">已收藏</span>
+          <div class="favorite-divider flex-grow-1 ms-2"></div>
+        </div>
+        <div class="sessions-list favorite-sessions-list px-1">
+          <div
+              v-for="session in favoriteSessions"
+              :key="session.id"
+              class="session-item-container favorite-session-item"
+              :class="{ 'is-active': currentSessionId === session.id }"
+              @click="$emit('select-session', session.id)"
+              @contextmenu.prevent="showContextMenu($event, session)"
+          >
+            <div class="active-indicator"></div>
+            <div class="session-content">
+              <i class="bi bi-star-fill text-yellow-500 me-2"></i>
+              <span class="session-title">{{ session.title }}</span>
+            </div>
+          </div>
+          <div v-if="favoriteSessions.length === 0" class="empty-favorite text-center py-4 text-gray-500 text-sm">
+            <i class="bi bi-star me-1"></i>暂无收藏的对话
           </div>
         </div>
-        <!-- 空状态 -->
-        <div v-if="favoriteSessions.length === 0" class="empty-favorite text-center py-4 text-gray-500 text-sm">
-          <i class="bi bi-star me-1"></i>暂无收藏的对话
+      </div>
+
+      <div class="normal-sessions-section mt-3 px-2">
+        <div class="normal-title mb-1 d-flex align-items-center">
+          <i class="bi bi-chat-left text-gray-400 me-2"></i>
+          <span class="text-sm text-gray-400">最近对话</span>
+          <div class="normal-divider flex-grow-1 ms-2"></div>
+        </div>
+        <div class="sessions-list px-1">
+          <div
+              v-for="session in sessions"
+              :key="session.id"
+              class="session-item-container"
+              :class="{ 'is-active': currentSessionId === session.id }"
+              @click="$emit('select-session', session.id)"
+              @contextmenu.prevent="showContextMenu($event, session)"
+          >
+            <div class="active-indicator"></div>
+            <div class="session-content">
+              <i class="bi bi-chat-left-text me-2 icon-dim"></i>
+              <span class="session-title">{{ session.title }}</span>
+            </div>
+          </div>
+          <div v-if="sessions.length === 0" class="empty-sessions text-center py-4 text-gray-500 text-sm">
+            <i class="bi bi-chat-left me-1"></i>暂无对话记录
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 普通对话列表 -->
-    <div class="normal-sessions-section mt-3 px-2">
-      <!-- 普通会话标题 -->
-      <div class="normal-title mb-1 d-flex align-items-center">
-        <i class="bi bi-chat-left text-gray-400 me-2"></i>
-        <span class="text-sm text-gray-400">最近对话</span>
-        <div class="normal-divider flex-grow-1 ms-2"></div>
-      </div>
-      <div class="sessions-list flex-grow-1 overflow-auto px-1">
-        <div
-            v-for="session in sessions"
-            :key="session.id"
-            class="session-item-container"
-            :class="{ 'is-active': currentSessionId === session.id }"
-            @click="$emit('select-session', session.id)"
-            @contextmenu.prevent="showContextMenu($event, session)"
-        >
-          <div class="active-indicator"></div>
-          <div class="session-content">
-            <i class="bi bi-chat-left-text me-2 icon-dim"></i>
-            <span class="session-title">{{ session.title }}</span>
-          </div>
-        </div>
-        <!-- 空状态 -->
-        <div v-if="sessions.length === 0" class="empty-sessions text-center py-4 text-gray-500 text-sm">
-          <i class="bi bi-chat-left me-1"></i>暂无对话记录
-        </div>
-      </div>
-    </div>
-
-    <!-- 右键菜单（优化逻辑） -->
-    <div v-if="contextMenu.visible" :style="contextMenu.style" class="context-menu shadow-lg">
-      <div class="menu-item" @click="triggerRename">
-        <i class="bi bi-pencil-square me-2"></i>重命名
-      </div>
-      <!-- 动态显示收藏/取消收藏 -->
-      <div v-if="!isFavorite(contextMenu.targetSession?.id)" class="menu-item" @click="setFavorite">
-        <i class="bi bi-star me-2"></i>收藏该对话
-      </div>
-      <div v-if="isFavorite(contextMenu.targetSession?.id)" class="menu-item" @click="resetFavorite">
-        <i class="bi bi-star-fill me-2 text-yellow-500"></i>取消收藏
-      </div>
-    </div>
+    <div v-if="contextMenu.visible" :style="contextMenu.style" class="context-menu shadow-lg">...</div>
 
     <div class="sidebar-footer border-top border-secondary p-3">
       <div
@@ -227,6 +210,7 @@ const resetFavorite = () => {
     </div>
   </div>
 </template>
+
 
 <style scoped>
 #sidebar {
@@ -315,6 +299,18 @@ const resetFavorite = () => {
   font-weight: 500;
 }
 
+/* 保持原有样式，并确保滚动条样式应用到新的容器 */
+.sessions-scroll-area::-webkit-scrollbar {
+  width: 4px;
+}
+.sessions-scroll-area::-webkit-scrollbar-thumb {
+  background: #343541;
+  border-radius: 10px;
+}
+.sessions-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 /* 左侧白条指示器 */
 .is-active .active-indicator {
   position: absolute;
@@ -379,7 +375,7 @@ const resetFavorite = () => {
 }
 
 .favorite-sessions-list {
-  max-height: 200px; /* 限制收藏栏高度 */
+  max-height: none; /* 限制收藏栏高度 */
 }
 
 .favorite-session-item {
